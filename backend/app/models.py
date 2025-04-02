@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, JSON
 from sqlalchemy.orm import relationship
 
 
@@ -7,12 +7,13 @@ class Question(Base):
     __tablename__ = "questions"
     id = Column(Integer, primary_key=True, index=True)
     chapter = Column(String, index=True)
-    question_text = Column(String)
-    option_a = Column(String)
-    option_b = Column(String)
-    option_c = Column(String)
-    option_d = Column(String)
-    correct_answer = Column(String)
+    question_text = Column(JSON)
+    options = Column(JSON)
+    # option_a = Column(String)
+    # option_b = Column(String)
+    # option_c = Column(String)
+    # option_d = Column(String)
+    correct_answer = Column(JSON)
 
     user_results = relationship("UserResult", back_populates="question")
 
@@ -25,8 +26,8 @@ class UserResult(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, index=True)
     question_id = Column(Integer, ForeignKey("questions.id"))
-    user_answer = Column(String)
-    is_correct = Column(Boolean)
+    user_answer = Column(JSON)
+    is_correct = Column(Integer)
 
     question = relationship("Question", back_populates="user_results")
 
