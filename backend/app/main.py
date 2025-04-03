@@ -1,4 +1,6 @@
 from typing import List
+
+from create_questions import generate_question
 from database import SessionLocal
 from fastapi import Depends, FastAPI, HTTPException
 from models import Question
@@ -28,6 +30,12 @@ class QuestionCreate(BaseModel):
     question_text: List[str]
     options: List[List[str]]
     correct_answer: List[str]
+
+
+@app.post("/get-question")
+async def get_question(chapter: str):
+    questions = generate_question(chapter)
+    return questions
 
 
 @app.post("/add-questions/")
