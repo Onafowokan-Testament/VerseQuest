@@ -32,7 +32,7 @@ class QuestionCreate(BaseModel):
     correct_answer: List[str]
 
 
-@app.post("/get-question")
+@app.get("/get-question")
 async def get_question(chapter: str):
     questions = generate_question(chapter)
     return questions
