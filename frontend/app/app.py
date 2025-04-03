@@ -1,3 +1,5 @@
+import json
+
 import streamlit as st
 
 # Number of chapters for each book in the Bible
@@ -72,27 +74,81 @@ bible_chapters = {
 
 st.title("📖 Bible Quest")
 
+# Select a Book
+selected_book = st.selectbox(
+    "Select a Book:", list(bible_chapters.keys()), key="book_select"
+)
 
-selected_book = st.selectbox("Select a Book:", list(bible_chapters.keys()))
-
+# If a book is selected, show chapters
 if selected_book:
     num_chapters = bible_chapters[selected_book]
     st.subheader("Select a Chapter:")
 
-    num_columns = 10 
-    chapter_buttons = list(range(1, num_chapters + 1))  
+    num_columns = 10
+    chapter_buttons = list(range(1, num_chapters + 1))
 
     selected_chapter = None
 
-   
     for i in range(0, len(chapter_buttons), num_columns):
-        cols = st.columns(num_columns)  
+        cols = st.columns(num_columns)
 
         for j in range(num_columns):
-            if i + j < len(chapter_buttons):  
-                if cols[j].button(str(chapter_buttons[i + j])):
+            if i + j < len(chapter_buttons):
+                # Add a unique key to each button
+                if cols[j].button(
+                    str(chapter_buttons[i + j]),
+                    key=f"chapter_{selected_book}_{chapter_buttons[i + j]}",
+                ):
                     selected_chapter = chapter_buttons[i + j]
 
-
     if selected_chapter:
-        st.write(f"📖 You selected: **{selected_book} Chapter {selected_chapter}**")
+        st.write(f"Bible Chapter  **{selected_book} {selected_chapter}**")
+
+# Start quiz button
+if st.button("Start quiz", key="start_quiz"):
+    selected_passage = f"{selected_book} {selected_chapter}"
+    # response = requests.get(
+    #     f"https://versequest.onrender.com/get-question?chapter={selected_passage}"
+    # )
+
+    # if response.status_code ==200:
+    #     response = selected_passage.json()
+
+    with open("response1.json", mode="r") as f:
+        response = json.load(f)
+
+    if "content" in response and "question_text" in response["content"]:
+        result = response["content"]
+        st.session_state.result = result
+        st.session_state.current_question_idx = 0
+        st.session_state.user_answers = []
+        st.session_state.score = 0
+
+        st.rerun()
+
+    else:
+        st.write("Error: Data is eiither maformed or incomplete")
+
+if "result" in st.session_state and st.session_state.current_question_idx < 5:
+    st.subheader(f"Question {st.session_state.current_question_idx +1}")
+    st.write(
+        st.session_state.result["question_text"][st.session_state.current_question_idx]
+    )
+    answer = st.radio(
+        "pick an answer",
+        st.session_state.result["options"][st.session_state.current_question_idx],
+        index=None,
+        key=f"Question_{st.session_state.current_question_idx }",
+    )
+
+    if st.button("Next"):
+        st.session_state.user_answers.append(answer)
+        st.session_state.current_question_idx += 1
+        st.rerun()
+    if st.session_state.current_question_idx == 5:
+        st.rerun()
+
+
+if "result" in st.session_state and st.session_state.current_question_idx == 5:
+    st.subheader("Quiz completed")
+    st.write(st.session_state.user_answers)
