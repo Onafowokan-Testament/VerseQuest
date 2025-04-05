@@ -1,7 +1,7 @@
-import json
 import time
 from datetime import datetime
 
+import requests
 import streamlit as st
 
 # ---- Page config ----
@@ -111,26 +111,38 @@ for i in range(bible_chapters[selected_book]):
 if st.sidebar.button("🚀 Start Quiz"):
     selected_chapter = st.session_state.selected_chapter
     selected_passage = f"{selected_book} {selected_chapter}"
-    with open("response1.json", mode="r") as f:
-        response = json.load(f)
 
-    if "content" in response and "question_text" in response["content"]:
-        st.session_state.result = response["content"]
-        st.session_state.current_question_idx = 0
-        st.session_state.user_answers = []
-        st.session_state.chapter = selected_passage
-        st.session_state.timer_start = time.time()
-        st.rerun()
+    # Show a loading button and spinner
+    with st.spinner("Fetching your quiz question..."):
+        response = requests.get(
+            f"https://versequest.onrender.com/get-question?chapter={selected_passage}"
+        )
+
+    # Handle the response after fetching data
+    if response.status_code == 200:
+        if (
+            "content" in response.json()
+            and "question_text" in response.json()["content"]
+        ):
+            st.session_state.result = response.json()["content"]
+            st.session_state.current_question_idx = 0
+            st.session_state.user_answers = []
+            st.session_state.chapter = selected_passage
+            st.session_state.timer_start = time.time()
+            st.rerun()
+        else:
+            st.sidebar.error("❌ Malformed or incomplete data. Try again.")
     else:
-        st.sidebar.error("❌ Malformed or incomplete data. Try again.")
+        st.sidebar.error("❌ Something went wrong. Please try again.")
+
 
 # ---- MAIN SECTION ----
 st.title("🎯 Bible Quest")
 
-# Load timer
-TIMER_DURATION = 30  # seconds
-
-if "result" in st.session_state and st.session_state.current_question_idx < 5:
+# If there are results, start displaying the quiz
+if "result" in st.session_state and st.session_state.current_question_idx < len(
+    st.session_state.result["question_text"]
+):
     idx = st.session_state.current_question_idx
     total = len(st.session_state.result["question_text"])
     question = st.session_state.result["question_text"][idx]
@@ -152,7 +164,9 @@ if "result" in st.session_state and st.session_state.current_question_idx < 5:
             st.session_state.timer_start = time.time()
             st.rerun()
 
-elif "result" in st.session_state and st.session_state.current_question_idx == 5:
+elif "result" in st.session_state and st.session_state.current_question_idx == len(
+    st.session_state.result["question_text"]
+):
     correct = st.session_state.result["correct_answer"]
     user = st.session_state.user_answers
     score = calculate_score(user, correct)
@@ -160,10 +174,8 @@ elif "result" in st.session_state and st.session_state.current_question_idx == 5
 
     # Save past scores
     if "quiz_completed" not in st.session_state:
-        # Save only once
         if "history" not in st.session_state:
             st.session_state.history = []
-
         st.session_state.history.append(
             {
                 "chapter": st.session_state.chapter,
