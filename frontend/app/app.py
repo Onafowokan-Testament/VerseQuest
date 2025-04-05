@@ -145,6 +145,7 @@ if "result" in st.session_state and st.session_state.current_question_idx < len(
 ):
     idx = st.session_state.current_question_idx
     total = len(st.session_state.result["question_text"])
+    st.session_state.total = total
     question = st.session_state.result["question_text"][idx]
     options = st.session_state.result["options"][idx]
 
@@ -161,7 +162,6 @@ if "result" in st.session_state and st.session_state.current_question_idx < len(
         else:
             st.session_state.user_answers.append(answer)
             st.session_state.current_question_idx += 1
-            st.session_state.timer_start = time.time()
             st.rerun()
 
 elif "result" in st.session_state and st.session_state.current_question_idx == len(
@@ -170,7 +170,7 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
     correct = st.session_state.result["correct_answer"]
     user = st.session_state.user_answers
     score = calculate_score(user, correct)
-    percent = round(score / 20 * 100)
+    percent = round(score / int(st.session_state.total) * 100)
 
     # Save past scores
     if "quiz_completed" not in st.session_state:
@@ -179,7 +179,7 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
         st.session_state.history.append(
             {
                 "chapter": st.session_state.chapter,
-                "score": f"{score}/20",
+                "score": f"{score}/{st.session_state.total}",
                 "percent": f"{percent}%",
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
@@ -188,12 +188,12 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
 
     st.balloons()
     st.markdown("## ✅ Quiz Completed!")
-    st.metric("Your Score", f"{score}/20")
+    st.metric("Your Score", f"{score}/{st.session_state.total}")
     st.metric("Percentage", f"{percent}%")
     st.info(get_feedback(percent))
 
     with st.expander("📋 Review Your Answers", expanded=True):
-        for i in range(20):
+        for i in range(int(st.session_state.total)):
             q = st.session_state.result["question_text"][i]
             a = st.session_state.result["correct_answer"][i]
             u = st.session_state.user_answers[i]
