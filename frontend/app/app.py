@@ -5,7 +5,7 @@ import requests
 import streamlit as st
 
 # ---- Page config ----
-st.set_page_config(page_title="📖 Bible Quest", layout="wide")
+st.set_page_config(page_title="📖 VerseQuest", layout="wide")
 
 # ---- Bible chapters ----
 bible_chapters = {
