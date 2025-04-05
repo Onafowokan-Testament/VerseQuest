@@ -104,7 +104,7 @@ if "selected_chapter" not in st.session_state:
 
 cols = st.sidebar.columns(3)
 for i in range(bible_chapters[selected_book]):
-    col = cols[i % 5]
+    col = cols[i % 3]
     if col.button(str(i + 1), key=f"chap_{i+1}"):
         st.session_state.selected_chapter = i + 1
 
