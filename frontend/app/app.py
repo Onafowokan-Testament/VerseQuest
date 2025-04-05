@@ -137,7 +137,7 @@ if st.sidebar.button("🚀 Start Quiz"):
 
 
 # ---- MAIN SECTION ----
-st.title("🎯 Bible Quest")
+st.title("🎯 VerseQuest")
 
 # If there are results, start displaying the quiz
 if "result" in st.session_state and st.session_state.current_question_idx < len(
