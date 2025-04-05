@@ -170,7 +170,7 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
     correct = st.session_state.result["correct_answer"]
     user = st.session_state.user_answers
     score = calculate_score(user, correct)
-    percent = round(score / 5 * 100)
+    percent = round(score / 20 * 100)
 
     # Save past scores
     if "quiz_completed" not in st.session_state:
@@ -179,7 +179,7 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
         st.session_state.history.append(
             {
                 "chapter": st.session_state.chapter,
-                "score": f"{score}/5",
+                "score": f"{score}/20",
                 "percent": f"{percent}%",
                 "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
@@ -188,12 +188,12 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
 
     st.balloons()
     st.markdown("## ✅ Quiz Completed!")
-    st.metric("Your Score", f"{score}/5")
+    st.metric("Your Score", f"{score}/20")
     st.metric("Percentage", f"{percent}%")
     st.info(get_feedback(percent))
 
     with st.expander("📋 Review Your Answers", expanded=True):
-        for i in range(5):
+        for i in range(20):
             q = st.session_state.result["question_text"][i]
             a = st.session_state.result["correct_answer"][i]
             u = st.session_state.user_answers[i]
