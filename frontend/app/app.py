@@ -1,8 +1,13 @@
 import json
+import time
+from datetime import datetime
 
 import streamlit as st
 
-# Number of chapters for each book in the Bible
+# ---- Page config ----
+st.set_page_config(page_title="📖 Bible Quest", layout="wide")
+
+# ---- Bible chapters ----
 bible_chapters = {
     "Genesis": 50,
     "Exodus": 40,
@@ -72,83 +77,138 @@ bible_chapters = {
     "Revelation": 22,
 }
 
-st.title("📖 Bible Quest")
 
-# Select a Book
-selected_book = st.selectbox(
-    "Select a Book:", list(bible_chapters.keys()), key="book_select"
-)
+def calculate_score(user_answers, correct_answers):
+    return sum(u == c for u, c in zip(user_answers, correct_answers))
 
-# If a book is selected, show chapters
-if selected_book:
-    num_chapters = bible_chapters[selected_book]
-    st.subheader("Select a Chapter:")
 
-    num_columns = 10
-    chapter_buttons = list(range(1, num_chapters + 1))
+def get_feedback(score_percent):
+    if score_percent == 100:
+        return "🌟 Perfect score! You're a Bible Master!"
+    elif score_percent >= 80:
+        return "💪 Great job! Keep it up!"
+    elif score_percent >= 60:
+        return "🙂 Good try! A little more study will help."
+    else:
+        return "📘 Keep practicing! You’re growing."
 
-    selected_chapter = None
 
-    for i in range(0, len(chapter_buttons), num_columns):
-        cols = st.columns(num_columns)
+# ---- SIDEBAR ----
+st.sidebar.title("📚 Bible Chapter Picker")
+selected_book = st.sidebar.selectbox("Choose a book:", list(bible_chapters.keys()))
+st.sidebar.markdown("### Choose a Chapter:")
 
-        for j in range(num_columns):
-            if i + j < len(chapter_buttons):
-                # Add a unique key to each button
-                if cols[j].button(
-                    str(chapter_buttons[i + j]),
-                    key=f"chapter_{selected_book}_{chapter_buttons[i + j]}",
-                ):
-                    selected_chapter = chapter_buttons[i + j]
+# Store selected chapter in session state
+if "selected_chapter" not in st.session_state:
+    st.session_state.selected_chapter = 1
 
-    if selected_chapter:
-        st.write(f"Bible Chapter  **{selected_book} {selected_chapter}**")
+cols = st.sidebar.columns(5)
+for i in range(bible_chapters[selected_book]):
+    col = cols[i % 5]
+    if col.button(str(i + 1), key=f"chap_{i+1}"):
+        st.session_state.selected_chapter = i + 1
 
-# Start quiz button
-if st.button("Start quiz", key="start_quiz"):
+if st.sidebar.button("🚀 Start Quiz"):
+    selected_chapter = st.session_state.selected_chapter
     selected_passage = f"{selected_book} {selected_chapter}"
-    # response = requests.get(
-    #     f"https://versequest.onrender.com/get-question?chapter={selected_passage}"
-    # )
-
-    # if response.status_code ==200:
-    #     response = selected_passage.json()
-
     with open("response1.json", mode="r") as f:
         response = json.load(f)
 
     if "content" in response and "question_text" in response["content"]:
-        result = response["content"]
-        st.session_state.result = result
+        st.session_state.result = response["content"]
         st.session_state.current_question_idx = 0
         st.session_state.user_answers = []
-        st.session_state.score = 0
-
+        st.session_state.chapter = selected_passage
+        st.session_state.timer_start = time.time()
         st.rerun()
-
     else:
-        st.write("Error: Data is eiither maformed or incomplete")
+        st.sidebar.error("❌ Malformed or incomplete data. Try again.")
+
+# ---- MAIN SECTION ----
+st.title("🎯 Bible Quest")
+
+# Load timer
+TIMER_DURATION = 30  # seconds
 
 if "result" in st.session_state and st.session_state.current_question_idx < 5:
-    st.subheader(f"Question {st.session_state.current_question_idx +1}")
-    st.write(
-        st.session_state.result["question_text"][st.session_state.current_question_idx]
+    idx = st.session_state.current_question_idx
+    total = len(st.session_state.result["question_text"])
+    question = st.session_state.result["question_text"][idx]
+    options = st.session_state.result["options"][idx]
+
+    st.markdown(
+        f"### 📖 {st.session_state.chapter} &nbsp;|&nbsp; Question {idx + 1}/{total}"
     )
-    answer = st.radio(
-        "pick an answer",
-        st.session_state.result["options"][st.session_state.current_question_idx],
-        index=None,
-        key=f"Question_{st.session_state.current_question_idx }",
-    )
+    st.progress((idx + 1) / total)
+    st.write(f"**Q{idx + 1}.** {question}")
+    answer = st.radio("Select an answer:", options, index=None, key=f"q_{idx}")
 
-    if st.button("Next"):
-        st.session_state.user_answers.append(answer)
-        st.session_state.current_question_idx += 1
+    if st.button("Next ➡️"):
+        if answer is None:
+            st.warning("⛔ Choose an answer or wait for timeout.")
+        else:
+            st.session_state.user_answers.append(answer)
+            st.session_state.current_question_idx += 1
+            st.session_state.timer_start = time.time()
+            st.rerun()
+
+elif "result" in st.session_state and st.session_state.current_question_idx == 5:
+    correct = st.session_state.result["correct_answer"]
+    user = st.session_state.user_answers
+    score = calculate_score(user, correct)
+    percent = round(score / 5 * 100)
+
+    # Save past scores
+    if "quiz_completed" not in st.session_state:
+        # Save only once
+        if "history" not in st.session_state:
+            st.session_state.history = []
+
+        st.session_state.history.append(
+            {
+                "chapter": st.session_state.chapter,
+                "score": f"{score}/5",
+                "percent": f"{percent}%",
+                "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            }
+        )
+    st.session_state.quiz_completed = True
+
+    st.balloons()
+    st.markdown("## ✅ Quiz Completed!")
+    st.metric("Your Score", f"{score}/5")
+    st.metric("Percentage", f"{percent}%")
+    st.info(get_feedback(percent))
+
+    with st.expander("📋 Review Your Answers", expanded=True):
+        for i in range(5):
+            q = st.session_state.result["question_text"][i]
+            a = st.session_state.result["correct_answer"][i]
+            u = st.session_state.user_answers[i]
+            opts = st.session_state.result["options"][i]
+
+            st.markdown(f"**Q{i+1}.** {q}")
+            for opt in opts:
+                if opt == a:
+                    st.success(f"✔️ {opt}")
+                elif opt == u:
+                    st.error(f"❌ {opt}")
+                else:
+                    st.write(opt)
+            st.markdown("---")
+
+    if st.button("🔁 Try Another Chapter"):
+        for key in list(st.session_state.keys()):
+            if key not in ["history"]:
+                del st.session_state[key]
         st.rerun()
-    if st.session_state.current_question_idx == 5:
-        st.rerun()
 
+elif "history" in st.session_state and len(st.session_state.history) > 0:
+    st.markdown("### 📜 Past Quizzes")
+    for record in reversed(st.session_state.history):
+        st.markdown(
+            f"**{record['chapter']}** — {record['score']} ({record['percent']}) &nbsp;&nbsp; _{record['time']}_"
+        )
 
-if "result" in st.session_state and st.session_state.current_question_idx == 5:
-    st.subheader("Quiz completed")
-    st.write(st.session_state.user_answers)
+else:
+    st.markdown("👉 Use the sidebar to pick a chapter and start the quiz.")
