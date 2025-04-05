@@ -102,7 +102,7 @@ st.sidebar.markdown("### Choose a Chapter:")
 if "selected_chapter" not in st.session_state:
     st.session_state.selected_chapter = 1
 
-cols = st.sidebar.columns(5)
+cols = st.sidebar.columns(3)
 for i in range(bible_chapters[selected_book]):
     col = cols[i % 5]
     if col.button(str(i + 1), key=f"chap_{i+1}"):
