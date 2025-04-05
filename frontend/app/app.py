@@ -9,72 +9,20 @@ st.set_page_config(page_title="📖 VerseQuest", layout="wide")
 
 # ---- Bible chapters ----
 bible_chapters = {
-    "Genesis": 50,
-    "Exodus": 40,
-    "Leviticus": 27,
-    "Numbers": 36,
-    "Deuteronomy": 34,
-    "Joshua": 24,
-    "Judges": 21,
-    "Ruth": 4,
-    "1 Samuel": 31,
-    "2 Samuel": 24,
-    "1 Kings": 22,
-    "2 Kings": 25,
-    "1 Chronicles": 29,
-    "2 Chronicles": 36,
-    "Ezra": 10,
-    "Nehemiah": 13,
-    "Esther": 10,
-    "Job": 42,
-    "Psalms": 150,
-    "Proverbs": 31,
-    "Ecclesiastes": 12,
-    "Song of Solomon": 8,
-    "Isaiah": 66,
-    "Jeremiah": 52,
-    "Lamentations": 5,
-    "Ezekiel": 48,
-    "Daniel": 12,
-    "Hosea": 14,
-    "Joel": 3,
-    "Amos": 9,
-    "Obadiah": 1,
-    "Jonah": 4,
-    "Micah": 7,
-    "Nahum": 3,
-    "Habakkuk": 3,
-    "Zephaniah": 3,
-    "Haggai": 2,
-    "Zechariah": 14,
-    "Malachi": 4,
-    "Matthew": 28,
-    "Mark": 16,
-    "Luke": 24,
-    "John": 21,
-    "Acts": 28,
-    "Romans": 16,
-    "1 Corinthians": 16,
-    "2 Corinthians": 13,
-    "Galatians": 6,
-    "Ephesians": 6,
-    "Philippians": 4,
-    "Colossians": 4,
-    "1 Thessalonians": 5,
-    "2 Thessalonians": 3,
-    "1 Timothy": 6,
-    "2 Timothy": 4,
-    "Titus": 3,
-    "Philemon": 1,
-    "Hebrews": 13,
-    "James": 5,
-    "1 Peter": 5,
-    "2 Peter": 3,
-    "1 John": 5,
-    "2 John": 1,
-    "3 John": 1,
-    "Jude": 1,
-    "Revelation": 22,
+    "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34,
+    "Joshua": 24, "Judges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
+    "1 Kings": 22, "2 Kings": 25, "1 Chronicles": 29, "2 Chronicles": 36,
+    "Ezra": 10, "Nehemiah": 13, "Esther": 10, "Job": 42, "Psalms": 150,
+    "Proverbs": 31, "Ecclesiastes": 12, "Song of Solomon": 8, "Isaiah": 66,
+    "Jeremiah": 52, "Lamentations": 5, "Ezekiel": 48, "Daniel": 12, "Hosea": 14,
+    "Joel": 3, "Amos": 9, "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3,
+    "Habakkuk": 3, "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 4,
+    "Matthew": 28, "Mark": 16, "Luke": 24, "John": 21, "Acts": 28, "Romans": 16,
+    "1 Corinthians": 16, "2 Corinthians": 13, "Galatians": 6, "Ephesians": 6,
+    "Philippians": 4, "Colossians": 4, "1 Thessalonians": 5, "2 Thessalonians": 3,
+    "1 Timothy": 6, "2 Timothy": 4, "Titus": 3, "Philemon": 1, "Hebrews": 13,
+    "James": 5, "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1,
+    "3 John": 1, "Jude": 1, "Revelation": 22,
 }
 
 
@@ -96,34 +44,42 @@ def get_feedback(score_percent):
 # ---- SIDEBAR ----
 st.sidebar.title("📚 Bible Chapter Picker")
 selected_book = st.sidebar.selectbox("Choose a book:", list(bible_chapters.keys()))
-st.sidebar.markdown("### Choose a Chapter:")
+
+# View mode toggle
+view_mode = st.sidebar.radio("Chapter View Mode", ["Buttons", "Dropdown"], horizontal=True)
 
 # Store selected chapter in session state
 if "selected_chapter" not in st.session_state:
     st.session_state.selected_chapter = 1
 
-cols = st.sidebar.columns(2)
-for i in range(bible_chapters[selected_book]):
-    col = cols[i % 2]
-    if col.button(str(i + 1), key=f"chap_{i+1}"):
-        st.session_state.selected_chapter = i + 1
+# Chapter selector (toggle between buttons and dropdown)
+if view_mode == "Buttons":
+    num_columns = 3
+    cols = st.sidebar.columns(num_columns)
+    for i in range(bible_chapters[selected_book]):
+        col = cols[i % num_columns]
+        with col:
+            if st.button(str(i + 1), key=f"chap_{i+1}"):
+                st.session_state.selected_chapter = i + 1
+else:
+    chapter_list = list(range(1, bible_chapters[selected_book] + 1))
+    selected_chapter = st.sidebar.selectbox(
+        "Choose a chapter:", chapter_list, index=st.session_state.selected_chapter - 1
+    )
+    st.session_state.selected_chapter = selected_chapter
 
+# Start quiz button
 if st.sidebar.button("🚀 Start Quiz"):
     selected_chapter = st.session_state.selected_chapter
     selected_passage = f"{selected_book} {selected_chapter}"
 
-    # Show a loading button and spinner
     with st.spinner("Fetching your quiz question..."):
         response = requests.get(
             f"https://versequest.onrender.com/get-question?chapter={selected_passage}"
         )
 
-    # Handle the response after fetching data
     if response.status_code == 200:
-        if (
-            "content" in response.json()
-            and "question_text" in response.json()["content"]
-        ):
+        if "content" in response.json() and "question_text" in response.json()["content"]:
             st.session_state.result = response.json()["content"]
             st.session_state.current_question_idx = 0
             st.session_state.user_answers = []
@@ -135,11 +91,9 @@ if st.sidebar.button("🚀 Start Quiz"):
     else:
         st.sidebar.error("❌ Something went wrong. Please try again.")
 
-
 # ---- MAIN SECTION ----
 st.title("🎯 VerseQuest")
 
-# If there are results, start displaying the quiz
 if "result" in st.session_state and st.session_state.current_question_idx < len(
     st.session_state.result["question_text"]
 ):
@@ -149,9 +103,7 @@ if "result" in st.session_state and st.session_state.current_question_idx < len(
     question = st.session_state.result["question_text"][idx]
     options = st.session_state.result["options"][idx]
 
-    st.markdown(
-        f"### 📖 {st.session_state.chapter} &nbsp;|&nbsp; Question {idx + 1}/{total}"
-    )
+    st.markdown(f"### 📖 {st.session_state.chapter} &nbsp;|&nbsp; Question {idx + 1}/{total}")
     st.progress((idx + 1) / total)
     st.write(f"**Q{idx + 1}.** {question}")
     answer = st.radio("Select an answer:", options, index=None, key=f"q_{idx}")
@@ -172,18 +124,15 @@ elif "result" in st.session_state and st.session_state.current_question_idx == l
     score = calculate_score(user, correct)
     percent = round(score / int(st.session_state.total) * 100)
 
-    # Save past scores
     if "quiz_completed" not in st.session_state:
         if "history" not in st.session_state:
             st.session_state.history = []
-        st.session_state.history.append(
-            {
-                "chapter": st.session_state.chapter,
-                "score": f"{score}/{st.session_state.total}",
-                "percent": f"{percent}%",
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            }
-        )
+        st.session_state.history.append({
+            "chapter": st.session_state.chapter,
+            "score": f"{score}/{st.session_state.total}",
+            "percent": f"{percent}%",
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
     st.session_state.quiz_completed = True
 
     st.balloons()
@@ -221,6 +170,5 @@ elif "history" in st.session_state and len(st.session_state.history) > 0:
         st.markdown(
             f"**{record['chapter']}** — {record['score']} ({record['percent']}) &nbsp;&nbsp; _{record['time']}_"
         )
-
 else:
     st.markdown("👉 Use the sidebar to pick a chapter and start the quiz.")
